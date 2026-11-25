@@ -55,8 +55,9 @@ ARG VERSION=""
 
 ### MODIFICATIONS
 ## Build scripts run in order: image identity, runtime overlays, desktop
-## packages and services, then cleanup. The DE build arg selects the desktop
-## inside 20-packages-and-services.sh.
+## packages and services, branding (logo + wallpapers + login screen),
+## then cleanup. The DE build arg selects the desktop inside
+## 20-packages-and-services.sh.
 ## Scripts are invoked via `bash`, not executed directly: files pushed to
 ## GitHub through the API lose their executable bit, and a direct call fails
 ## with "Permission denied" (exit 126) — that killed the first CI run.
@@ -91,6 +92,17 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/boot \
     --mount=type=tmpfs,dst=/tmp \
     bash /ctx/build/20-packages-and-services.sh
+
+### BRANDING
+## Applies the NovaOS logo and wallpapers (fastfetch logo, GNOME/COSMIC/
+## niri/Hyprland default wallpapers, GDM login logo + background). Runs
+## after the desktop packages are installed; nothing in it is fatal.
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache/libdnf5 \
+    --mount=type=cache,dst=/var/cache/rpm-ostree \
+    --mount=type=tmpfs,dst=/boot \
+    --mount=type=tmpfs,dst=/tmp \
+    bash /ctx/build/30-branding.sh
 
 ### CLEANUP
 ## Finalises package sources, disables third-party repos, then prunes build

@@ -78,6 +78,44 @@ Differences from finpilot: no `projectbluefin/common` / `ublue-os/brew` OCI
 stages (NovaOS ships only its own files), and no stable/stable-testing
 promotion lanes yet (main publishes `:45` directly).
 
+## Branding
+
+The NovaOS logo (crystalline "N", blue + gold) and four wallpapers ship in
+every image:
+
+- **Wallpapers** — `/usr/share/backgrounds/novaos/`: `novaos-dark.jpg`
+  (default everywhere), `novaos-light.jpg`, `novaos-galaxy.jpg`,
+  `novaos-logo.jpg` (logo lockup poster).
+- **Default wallpaper per desktop** — GNOME via a gschema override
+  (`90-novaos.gschema.override`, desktop + lock screen); COSMIC via the
+  system cosmic-config files (`com.system76.CosmicBackground[.Dark|.Light]`,
+  dark wallpaper for dark mode, light for light mode); Niri via `swaybg`
+  (spawned from the starter config); Hyprland via `hyprpaper`
+  (`hyprpaper.conf` + autostart in `hyprland.lua`). MangoWC has no
+  wallpaper mechanism wired yet — the wallpapers are installed, pick one
+  from Dux Shell.
+- **Terminal** — `fastfetch` shows a blue/gold ASCII "N"
+  (`/etc/fastfetch/config.jsonc` + `/usr/share/novaos/fastfetch-logo.txt`);
+  a per-user config in `~/.config/fastfetch/` overrides it.
+- **OS logo** — `LOGO=novaos-logo` in os-release, icon at
+  `/usr/share/icons/hicolor/256x256/apps/novaos-logo.png` (fallback
+  `/usr/share/pixmaps/novaos-logo.png`).
+- **Login screen** — GDM shows the logo (dconf `gdm.d`) and the dark
+  wallpaper as background (`build/30-branding.sh` patches it into the
+  GNOME Shell theme gresource; dconf cannot set the greeter background
+  since GNOME 48). The patch is guarded: if it fails, the original theme
+  is restored and the build continues.
+
+## Software
+
+- **GNOME Software** is installed on the three tiling images (niri,
+  Hyprland, MangoWC) — GNOME already ships it, COSMIC ships Cosmic Store.
+  On Atomic it installs Flatpaks and stages OS updates for the next reboot.
+- **Flathub** is preconfigured system-wide
+  (`/usr/share/flatpak/remotes.d/flathub.flatpakrepo`), so the store has
+  apps on first boot. The Fedora Flatpak remote is deliberately *not*
+  added (its first-boot service is removed in `90-cleanup.sh`).
+
 ## Image signing
 
 Images are signed keyless (Cosign/Sigstore OIDC) in CI — no keypair to
@@ -118,6 +156,14 @@ signature at switch time; the baked ref only describes the update source.
   (in-tree `amdgpu`), but a real limit if NVIDIA support is ever wanted.
 - **Fedora 45 EOL is 8 Dec 2027.** Moving to F46 is a one-arg change
   (`FEDORA_MAJOR_VERSION`), but every desktop must be re-tested.
+- **Wallpapers are 1179×658 (phone-sized).** On a 1080p+ screen they
+  upscale and look slightly soft. Higher-resolution sources would fix it.
+- **MangoWC has no default wallpaper wired.** The four wallpapers are
+  installed; pick one from Dux Shell. (Niri → swaybg, Hyprland →
+  hyprpaper, GNOME → gschema override, COSMIC → system cosmic-config.)
+- **COSMIC lock screen has no system default.** The greeter reads the
+  per-user state, not the system config, so it may show COSMIC's built-in
+  nebula until the user picks a wallpaper once.
 - **Layering is discouraged.** Install what you need into the image or use
   Flatpaks/Distrobox; `rpm-ostree install` on top of NovaOS works but
   slows updates and can block `bootc upgrade` (use `rpm-ostree upgrade`
@@ -128,7 +174,7 @@ signature at switch time; the baked ref only describes the update source.
 ```
 Containerfile                  # one file, ARG DE selects the desktop
 build/                         # 00-image-info, 10-overlay, 20-packages-and-services,
-                               # 90-cleanup, copr-helpers (adapted from finpilot)
+                               # 30-branding, 90-cleanup, copr-helpers (adapted from finpilot)
 desktops/<de>/packages.txt     # per-desktop package lists (+ mangowc/README.md)
 system_files/                  # files mirrored into the image (session files,
                                # /etc/skel/.config starter configs)
