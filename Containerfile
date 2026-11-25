@@ -72,8 +72,9 @@ RUN cp /etc/dnf/dnf.conf /etc/dnf/dnf.conf.tmp \
     && dnf5 config-manager setopt keepcache=1 install_weak_deps=0
 
 ### RUNTIME OVERLAYS
-## Copies system_files/ into the image (session files, skel configs), enables
-## GDM and the services the desktop needs. Installs no packages.
+## Copies system_files/ into the image (session files, skel configs).
+## Installs no packages and enables no services: GDM is enabled in
+## 20-packages-and-services.sh, after it is installed on base-main images.
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache/libdnf5 \
     --mount=type=cache,dst=/var/cache/rpm-ostree \

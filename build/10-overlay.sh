@@ -12,8 +12,14 @@ set -euo pipefail
 #      and anything else shipped by path.
 #   2. system_files/etc/skel/.config seeds each new user's ~/.config
 #      (niri / Hyprland starter configs that launch Dux Shell).
-#   3. GDM is enabled on every image: it lists all sessions from
-#      /usr/share/wayland-sessions/*.desktop (and xsessions for Cinnamon).
+#   3. GDM is NOT enabled here: on base-main images GDM is only installed
+#      later, by 20-packages-and-services.sh, so `systemctl enable
+#      gdm.service` here fails with "Unit gdm.service does not exist"
+#      (that killed the cinnamon/hyprland/mangowc/niri jobs of CI run
+#      45642597872). The enable step lives at the end of
+#      20-packages-and-services.sh, after the GDM install.
+#      GDM lists all sessions from /usr/share/wayland-sessions/*.desktop
+#      (and xsessions for Cinnamon).
 ###############################################################################
 
 shopt -s nullglob
@@ -26,16 +32,6 @@ if command -v rsync >/dev/null 2>&1; then
 else
 	cp -rv /ctx/system_files/. /
 fi
-
-echo "::endgroup::"
-
-echo "::group:: Enable display manager and base services"
-
-# GDM is the single display manager for all five images. It is already
-# present on silverblue-main; on base-main it is installed by
-# 20-packages-and-services.sh. Enabling it here works either way because
-# systemctl enable only writes symlinks.
-systemctl enable gdm.service
 
 echo "::endgroup::"
 

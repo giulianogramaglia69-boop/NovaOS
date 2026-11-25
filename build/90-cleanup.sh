@@ -32,10 +32,19 @@ disable_repo_file() {
 
 # One list feeds both the disable pass and the guard below, so a repository
 # the script knows how to disable is always one the guard re-checks.
+#
+# negativo17-*.repo must be listed explicitly: fedora-multimedia is the
+# negativo17 third-party repo (not Fedora's own), and its file is named
+# negativo17-fedora-multimedia.repo, not fedora-multimedia.repo — so the
+# fixed name below never matched it, and the ownership pass skipped it too
+# because the negativo17 release package owns the file. That is why GNOME
+# failed CI run 45642597872 with "third-party repository still enabled:
+# fedora-multimedia" even though the disable pass ran.
 third_party_repo_files=(
 	"${REPOS_DIR}"/_copr:*.repo
 	"${REPOS_DIR}"/_copr_*.repo
 	"${REPOS_DIR}"/rpmfusion-*.repo
+	"${REPOS_DIR}"/negativo17-*.repo
 )
 for repo_name in fedora-multimedia tailscale fedora-cisco-openh264 fedora-coreos-pool; do
 	third_party_repo_files+=("${REPOS_DIR}/${repo_name}.repo")
@@ -45,7 +54,11 @@ done
 # addrepo, or nvidia-container-toolkit.repo from a curl) has no fixed name in
 # this list, so classify by ownership too: base Fedora repo files are owned by
 # fedora-repos*, while anything dnf5, config-manager or a script writes is
-# owned by nothing and is therefore third-party.
+# owned by nothing and is therefore third-party. This ownership test is NOT
+# reliable on its own: a third-party release package owns its own .repo file
+# too (negativo17-fedora-multimedia.repo is owned by the negativo17 release
+# package), so known third-party prefixes must also be listed explicitly
+# above — otherwise they slip past both passes and trip the guard.
 #
 # rpm is always present in a bootc Fedora image, but guard the pass so a
 # missing rpm can never make every base file look unowned and disable the base

@@ -128,5 +128,14 @@ if ! rpm -q gdm >/dev/null 2>&1; then
 	echo "::endgroup::"
 fi
 
+# GDM is the single display manager for all five images. It is enabled
+# here, not in 10-overlay.sh: that phase runs before GDM exists on
+# base-main, so enabling it there failed with "Unit gdm.service does not
+# exist" (CI run 45642597872, cinnamon/hyprland/mangowc/niri). At this
+# point GDM is installed on every image, so the enable always succeeds.
+echo "::group:: Enable display manager"
+systemctl enable gdm.service
+echo "::endgroup::"
+
 # Restore default glob behavior
 shopt -u nullglob
