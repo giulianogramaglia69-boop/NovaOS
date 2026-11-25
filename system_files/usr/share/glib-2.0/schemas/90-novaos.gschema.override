@@ -1,0 +1,9 @@
+# NovaOS defaults: NovaOS wallpaper on the desktop and the lock screen.
+# Compiled into gschemas.compiled by build/30-branding.sh.
+[org.gnome.desktop.background]
+picture-uri='file:///usr/share/backgrounds/novaos/novaos-dark.jpg'
+picture-uri-dark='file:///usr/share/backgrounds/novaos/novaos-dark.jpg'
+picture-options='zoom'
+[org.gnome.desktop.screensaver]
+picture-uri='file:///usr/share/backgrounds/novaos/novaos-dark.jpg'
+picture-options='zoom'
