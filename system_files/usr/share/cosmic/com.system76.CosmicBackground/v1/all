@@ -1,0 +1,9 @@
+(
+    "all": (
+        output: "all",
+        source: Path("/usr/share/backgrounds/novaos/novaos-dark.jpg"),
+        rotation_frequency: 900,
+    ),
+    "backgrounds": [],
+    "same-on-all": true,
+)
