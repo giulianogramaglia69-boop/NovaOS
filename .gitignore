@@ -1,0 +1,8 @@
+# Build artifacts and local state — never committed.
+output/
+_build_*
+sbom-current/
+cosign.key
+*.iso
+*.qcow2
+*.raw

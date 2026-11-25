@@ -1,0 +1,17 @@
+# novaos-hyprland — packages from the official Fedora repos.
+# Hyprland itself is NOT in Fedora 45 (verified against the F45 release and
+# updates repodata, 25 Nov 2026): hyprland, hyprlock, hypridle, hyprpaper and
+# xdg-desktop-portal-hyprland come from the sdegler/hyprland COPR
+# (see build/20-packages-and-services.sh).
+# Dux Shell (dms, quickshell, matugen) comes from the duxlabs/dms COPR,
+# not from this list.
+# One package per line; lines starting with # are comments.
+alacritty
+waybar
+wofi
+xwayland-satellite
+xdg-desktop-portal-gtk
+pipewire
+wireplumber
+lxpolkit
+gnome-keyring

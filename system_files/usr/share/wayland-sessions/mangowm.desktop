@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=MangoWM
+Comment=MangoWC — a dwl-based Wayland compositor (NovaOS)
+Exec=/usr/bin/mango
+Type=Application
+DesktopNames=mangowm
+Keywords=tiling;wayland;compositor;

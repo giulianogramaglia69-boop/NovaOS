@@ -1,0 +1,3 @@
+# novaos-gnome — extra packages on top of silverblue-main (GNOME 51).
+# One package per line; lines starting with # are comments.
+gnome-tweaks

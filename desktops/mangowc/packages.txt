@@ -1,0 +1,17 @@
+# novaos-mangowc — companion packages from the official Fedora repos.
+# The MangoWC compositor itself is NOT in Fedora; its source is selected
+# by the MANGOWC_SOURCE build arg (terra | copr | source) in
+# build/20-packages-and-services.sh — see desktops/mangowc/README.md.
+# Dux Shell (dms, quickshell, matugen) comes from the duxlabs/dms COPR,
+# not from this list.
+# One package per line; lines starting with # are comments.
+alacritty
+waybar
+wofi
+xwayland-satellite
+xdg-desktop-portal-wlr
+xdg-desktop-portal-gtk
+pipewire
+wireplumber
+lxpolkit
+gnome-keyring

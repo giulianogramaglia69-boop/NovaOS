@@ -1,0 +1,19 @@
+# novaos-niri — packages from the official Fedora repos.
+# Dux Shell (dms, quickshell, matugen) comes from the duxlabs/dms COPR
+# (see build/20-packages-and-services.sh), not from this list.
+# Note: dnf runs with install_weak_deps=0 in this image build, so the
+# weak dependencies of the `niri` package (alacritty, fuzzel, swaylock,
+# waybar, ...) are listed explicitly here instead of relying on them.
+# One package per line; lines starting with # are comments.
+niri
+alacritty
+fuzzel
+swaylock
+waybar
+xdg-desktop-portal-gnome
+xdg-desktop-portal-gtk
+xwayland-satellite
+pipewire
+wireplumber
+lxpolkit
+gnome-keyring
