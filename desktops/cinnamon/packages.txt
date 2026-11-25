@@ -1,4 +1,0 @@
-# novaos-cinnamon — extra packages beyond the `cinnamon-desktop` group
-# (installed with `dnf5 group install` in 20-packages-and-services.sh).
-# One package per line; lines starting with # are comments.
-gnome-terminal
