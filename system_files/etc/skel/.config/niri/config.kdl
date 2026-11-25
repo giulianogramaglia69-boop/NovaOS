@@ -45,6 +45,9 @@ prefer-no-csd
 // Dux Shell.
 spawn-at-startup "dms" "run"
 
+// NovaOS wallpaper (swaybg; Dux Shell can override it from its own settings).
+spawn-at-startup "swaybg" "-m" "fill" "-i" "/usr/share/backgrounds/novaos/novaos-dark.jpg"
+
 binds {
     Mod+Return { spawn "alacritty"; }
     Mod+D { spawn "fuzzel"; }
