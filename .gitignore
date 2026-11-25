@@ -6,3 +6,4 @@ cosign.key
 *.iso
 *.qcow2
 *.raw
+nova-ai/target/

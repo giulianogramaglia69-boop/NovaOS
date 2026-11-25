@@ -34,6 +34,7 @@ FROM scratch AS ctx
 COPY build /build
 COPY system_files /system_files
 COPY desktops /desktops
+COPY nova-ai /nova-ai
 
 # Base image. GNOME rides on silverblue-main (GNOME 51 on F45); the other four
 # desktops are installed on top of the desktop-less base-main.
@@ -56,8 +57,8 @@ ARG VERSION=""
 ### MODIFICATIONS
 ## Build scripts run in order: image identity, runtime overlays, desktop
 ## packages and services, branding (logo + wallpapers + login screen),
-## then cleanup. The DE build arg selects the desktop inside
-## 20-packages-and-services.sh.
+## NovaAI (the system AI agent, built from source), then cleanup. The DE
+## build arg selects the desktop inside 20-packages-and-services.sh.
 ## Scripts are invoked via `bash`, not executed directly: files pushed to
 ## GitHub through the API lose their executable bit, and a direct call fails
 ## with "Permission denied" (exit 126) — that killed the first CI run.
@@ -103,6 +104,18 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/boot \
     --mount=type=tmpfs,dst=/tmp \
     bash /ctx/build/30-branding.sh
+
+### NOVAAI
+## Builds the NovaAI system agent (nova-ai/) from source with cargo and
+## installs /usr/bin/nova-ai. Runs after branding so the NovaAI desktop
+## icon (novaos-logo) is already in place. Toolchain and headers are
+## removed again inside the script; runtime libs stay.
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache/libdnf5 \
+    --mount=type=cache,dst=/var/cache/rpm-ostree \
+    --mount=type=tmpfs,dst=/boot \
+    --mount=type=tmpfs,dst=/tmp \
+    bash /ctx/build/40-nova-ai.sh
 
 ### CLEANUP
 ## Finalises package sources, disables third-party repos, then prunes build

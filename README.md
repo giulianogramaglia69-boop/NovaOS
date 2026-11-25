@@ -106,6 +106,32 @@ every image:
   since GNOME 48). The patch is guarded: if it fails, the original theme
   is restored and the build continues.
 
+## NovaAI
+
+Every image ships **NovaAI**, the system AI agent (`/usr/bin/nova-ai`,
+source in `nova-ai/`, Rust + GTK4/libadwaita, GPLv3). A small tab sits
+at the bottom-right edge of the screen ("✦ NovaAI"); clicking it opens
+a chat to manage the system in Italian: open apps, install software
+from Flathub, adjust volume, brightness, Wi-Fi and theme. Installs and
+system changes ask for confirmation in the chat first.
+
+- **First boot** — the tab is autostarted at login; the first launch
+  asks for the provider and API key: OpenAI, **Groq** (default,
+  free tier), OpenRouter, or a custom OpenAI-compatible endpoint. The
+  key goes to the system keyring (libsecret), never in a file.
+- **Voice** — hold the 🎤 button to talk (transcribed via the
+  provider's Whisper); attach files and photos in the chat.
+- **Wake word "Ehi Nova"** — opt-in (off by default): the setup asks
+  whether to enable it, and the chat settings have the same switch.
+  Detection is fully offline with Vosk (Italian model, ~47 MB,
+  downloaded on first enable, never in the image); the mic indicator
+  dot on the tab shows when it is listening.
+- **Build** — `build/40-nova-ai.sh` compiles it from source in the
+  image build (toolchain removed afterwards) and installs
+  `libvosk.so` from the official upstream prebuilt zip (Fedora does
+  not package it). If that download fails, NovaAI still builds
+  without the wake-word feature.
+
 ## Software
 
 - **GNOME Software** is installed on the three tiling images (niri,

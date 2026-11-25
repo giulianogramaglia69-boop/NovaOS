@@ -1,0 +1,3 @@
+# Build context excludes: never ship local cargo build artifacts
+# (nova-ai/target is ~2 GB of intermediate objects) into the image build.
+nova-ai/target
