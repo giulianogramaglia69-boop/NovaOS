@@ -1,0 +1,79 @@
+name: Build Disk Images (ISO / qcow2)
+
+# Builds a bootable ISO per desktop with bootc-image-builder. Runs on manual
+# dispatch only: an ISO build downloads the whole image again and takes much
+# longer than a container build.
+# Each job rebuilds its container image locally first (via `just build`), then
+# converts it with BIB (via `just build-iso`), and uploads the ISO as an
+# artifact. The ISO installs the published image reference (read from the
+# image's image-info.json by the Justfile), so install the matching :45 tag.
+on:
+  workflow_dispatch:
+    inputs:
+      de:
+        description: "Desktop to build an ISO for (or 'all')"
+        required: false
+        default: "niri"
+        type: choice
+        options:
+          - niri
+          - gnome
+          - cinnamon
+          - hyprland
+          - mangowc
+          - all
+
+permissions:
+  contents: read
+  packages: read
+  id-token: write
+
+env:
+  IMAGE_VENDOR: "${{ github.repository_owner }}"
+  FEDORA_MAJOR_VERSION: "45"
+  DEFAULT_TAG: "45"
+
+jobs:
+  build-disk:
+    name: ISO ${{ matrix.de }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        de: ${{ fromJSON(inputs.de == 'all' && '["gnome", "cinnamon", "hyprland", "mangowc", "niri"]' || format('["{0}"]', inputs.de)) }}
+    env:
+      IMAGE_NAME: "novaos-${{ matrix.de }}"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup runner
+        uses: projectbluefin/actions/bootc-build/setup-runner@03d9862e4e82640beea35a64d578d44faf163ea9 # v1
+        with:
+          storage-backend: btrfs
+          native-overlay: "true"
+          update-podman: "true"
+          install-tools: '["just"]'
+
+      - name: Build ISO
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_VENDOR: ${{ env.IMAGE_VENDOR }}
+          DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
+          FEDORA_MAJOR_VERSION: ${{ env.FEDORA_MAJOR_VERSION }}
+        run: |
+          sudo -E "$(command -v just)" rebuild-iso "${IMAGE_NAME}" "${DEFAULT_TAG}"
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.IMAGE_NAME }}-iso
+          path: output/bootiso/install.iso
+          if-no-files-found: error
+          retention-days: 30
