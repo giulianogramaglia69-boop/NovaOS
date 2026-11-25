@@ -57,11 +57,14 @@ ARG VERSION=""
 ## Build scripts run in order: image identity, runtime overlays, desktop
 ## packages and services, then cleanup. The DE build arg selects the desktop
 ## inside 20-packages-and-services.sh.
+## Scripts are invoked via `bash`, not executed directly: files pushed to
+## GitHub through the API lose their executable bit, and a direct call fails
+## with "Permission denied" (exit 126) — that killed the first CI run.
 
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/boot \
     --mount=type=tmpfs,dst=/tmp \
-    /ctx/build/00-image-info.sh
+    bash /ctx/build/00-image-info.sh
 
 # Set dnf options before build scripts (persists across subsequent RUN layers)
 RUN cp /etc/dnf/dnf.conf /etc/dnf/dnf.conf.tmp \
@@ -76,7 +79,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache/rpm-ostree \
     --mount=type=tmpfs,dst=/boot \
     --mount=type=tmpfs,dst=/tmp \
-    /ctx/build/10-overlay.sh
+    bash /ctx/build/10-overlay.sh
 
 ### DESKTOP PACKAGES AND SERVICES
 ## Installs the desktop's RPM/COPR packages from desktops/<de>/packages.txt
@@ -86,7 +89,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache/rpm-ostree \
     --mount=type=tmpfs,dst=/boot \
     --mount=type=tmpfs,dst=/tmp \
-    /ctx/build/20-packages-and-services.sh
+    bash /ctx/build/20-packages-and-services.sh
 
 ### CLEANUP
 ## Finalises package sources, disables third-party repos, then prunes build
@@ -94,7 +97,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     --mount=type=tmpfs,dst=/boot \
-    /ctx/build/90-cleanup.sh
+    bash /ctx/build/90-cleanup.sh
 
 ### /opt
 ## Makes /opt writeable by default.
