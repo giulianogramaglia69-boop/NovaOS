@@ -9,6 +9,7 @@
 alacritty
 waybar
 wofi
+gnome-software
 xwayland-satellite
 xdg-desktop-portal-gtk
 pipewire
