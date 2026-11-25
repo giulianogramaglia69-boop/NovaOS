@@ -1,0 +1,40 @@
+[package]
+name = "nova-ai-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "NovaAI chat UI (GTK4 + libadwaita + gtk4-layer-shell) — thin layer over nova-ai-core"
+
+[[bin]]
+name = "nova-ai"
+path = "src/main.rs"
+
+[dependencies]
+# default-features = false: the UI forwards its own `wakeword` feature
+# to core explicitly, so `cargo build -p nova-ai-ui
+# --no-default-features` really builds core without Vosk/cpal too
+# (otherwise core's own default features would re-enable them).
+nova-ai-core = { path = "../nova-ai-core", default-features = false }
+# NOTE: gtk4 0.9 / libadwaita 0.7 / gtk4-layer-shell 0.4 are built on
+# glib/gio/gdk-pixbuf 0.20 — the direct deps MUST be 0.20 too, or the
+# UI ends up with two glib versions and nothing type-checks (the
+# Propagation/IsA/ApplicationFlags types differ between 0.20/0.21).
+# gtk4 feature v4_12: FileDialog (v4_10) + CssProvider::load_from_string.
+gtk4 = { version = "0.9", features = ["v4_12"] }
+# Renamed: the crate is `libadwaita`, but the code (and the upstream
+# examples) use it as `adw`.
+adw = { package = "libadwaita", version = "0.7", features = ["v1_5"] }
+gtk4-layer-shell = "0.4"
+glib = "0.20"
+gio = "0.20"
+gdk-pixbuf = "0.20"
+async-channel = "2"
+base64 = "0.22"
+serde_json = "1"
+
+[features]
+default = ["wakeword"]
+# Wake word UI (listener wiring, settings toggle, tab indicator).
+# Enables nova-ai-core/wakeword; off with --no-default-features.
+wakeword = ["nova-ai-core/wakeword"]
