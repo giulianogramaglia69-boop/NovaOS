@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=NovaAI
+Comment=Assistente AI di NovaOS
+Exec=nova-ai
+Icon=novaos-logo
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=2
