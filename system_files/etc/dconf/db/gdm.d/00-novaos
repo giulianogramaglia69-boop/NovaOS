@@ -1,0 +1,6 @@
+# NovaOS — logo on the GDM login screen.
+# The login-screen *background* cannot be set via dconf (GNOME 48+ removed
+# the option); it is patched into the GNOME Shell theme gresource by
+# build/30-branding.sh instead.
+[org.gnome.login-screen]
+logo='/usr/share/pixmaps/novaos-logo.png'
