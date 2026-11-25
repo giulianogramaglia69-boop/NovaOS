@@ -129,6 +129,11 @@ if [[ -f "${OS_RELEASE}" ]]; then
     set_os_release_value "OSTREE_VERSION" "${VERSION}"
     set_os_release_value "IMAGE_ID" "${IMAGE_NAME}"
     set_os_release_value "IMAGE_VERSION" "${VERSION}"
+    # LOGO is an icon *name* (freedesktop spec), not a path: the matching
+    # icon ships at /usr/share/icons/hicolor/256x256/apps/novaos-logo.png
+    # (fallback /usr/share/pixmaps/novaos-logo.png). GNOME Settings About
+    # and other tools look it up by this name.
+    set_os_release_value "LOGO" "novaos-logo"
 
     # The build commit is deliberately not written here. SHA_HEAD_SHORT is
     # declared late in the Containerfile so a new commit only invalidates the
