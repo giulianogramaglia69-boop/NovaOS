@@ -9,7 +9,9 @@ niri
 alacritty
 fuzzel
 swaylock
+swaybg
 waybar
+gnome-software
 xdg-desktop-portal-gnome
 xdg-desktop-portal-gtk
 xwayland-satellite
