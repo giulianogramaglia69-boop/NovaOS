@@ -1,0 +1,33 @@
+[package]
+name = "nova-ai-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Core library for NovaAI: LLM client, agent loop, tools, config (no GUI)"
+
+[lib]
+name = "nova_ai_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+ureq = { version = "3", features = ["json", "platform-verifier"] }
+# Model download (unzip). Pure Rust, always available.
+zip = "2"
+# Wake word ("Ehi Nova"): Vosk offline recognition + cpal mic capture.
+# Optional behind the `wakeword` feature: vosk-sys downloads the native
+# Vosk library at build time, and cpal needs ALSA dev headers. The
+# feature is on by default; the Fedora image build enables it, and a
+# build without the native libs can use --no-default-features.
+vosk = { version = "0.3.1", optional = true }
+cpal = { version = "0.15", optional = true }
+
+[features]
+default = ["wakeword"]
+wakeword = ["dep:vosk", "dep:cpal"]
+
+[dev-dependencies]
+# (tests use only std + the crate itself)
