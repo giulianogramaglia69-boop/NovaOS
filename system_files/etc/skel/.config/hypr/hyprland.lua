@@ -13,6 +13,8 @@ hl.env("XCURSOR_SIZE", "24")
 hl.on("hyprland.start", function()
     hl.exec_cmd("dms run")
     hl.exec_cmd("waybar")
+    -- NovaOS wallpaper (hyprpaper.conf in the same directory).
+    hl.exec_cmd("hyprpaper")
 end)
 
 hl.config({
