@@ -7,7 +7,7 @@
 #
 #   DE            BASE_IMAGE_NAME    Image
 #   gnome         silverblue-main    novaos-gnome
-#   cinnamon      base-main          novaos-cinnamon
+#   cosmic        base-main          novaos-cosmic
 #   hyprland      base-main          novaos-hyprland
 #   mangowc       base-main          novaos-mangowc
 #   niri          base-main          novaos-niri
@@ -84,7 +84,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 
 ### DESKTOP PACKAGES AND SERVICES
 ## Installs the desktop's RPM/COPR packages from desktops/<de>/packages.txt
-## (plus the Cinnamon group) and enables the services they provide.
+## (plus the COSMIC group) and enables the services they provide.
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache/libdnf5 \
     --mount=type=cache,dst=/var/cache/rpm-ostree \

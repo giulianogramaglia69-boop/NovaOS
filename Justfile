@@ -66,9 +66,9 @@ build $target_image="novaos-niri" $tag="45":
     image_name="${target_image#localhost/}"
     de="${image_name#novaos-}"
     case "${de}" in
-        gnome|cinnamon|hyprland|mangowc|niri) ;;
+        gnome|cosmic|hyprland|mangowc|niri) ;;
         *)
-            echo "ERROR: unknown desktop in image name '${image_name}' (expected novaos-<gnome|cinnamon|hyprland|mangowc|niri>)"
+            echo "ERROR: unknown desktop in image name '${image_name}' (expected novaos-<gnome|cosmic|hyprland|mangowc|niri>)"
             exit 1
             ;;
     esac

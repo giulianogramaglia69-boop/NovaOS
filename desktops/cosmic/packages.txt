@@ -1,0 +1,5 @@
+# novaos-cosmic — extra packages beyond the `@cosmic-desktop` group.
+# COSMIC 1.10.0 is in the official Fedora 45 repos; the group install in
+# build/20-packages-and-services.sh pulls cosmic-session and the whole core
+# desktop, so this list is empty for now. Add extra packages here, one per
+# line; lines starting with # are comments.

@@ -19,7 +19,7 @@ set -euo pipefail
 : "${IMAGE_VENDOR:?IMAGE_VENDOR must be set}"
 : "${UBLUE_IMAGE_TAG:?UBLUE_IMAGE_TAG must be set}"
 : "${BASE_IMAGE_NAME:?BASE_IMAGE_NAME must be set}"
-: "${DE:?DE must be set (gnome|cinnamon|hyprland|mangowc|niri)}"
+: "${DE:?DE must be set (gnome|cosmic|hyprland|mangowc|niri)}"
 
 VERSION="${VERSION:-${UBLUE_IMAGE_TAG}}"
 HOME_URL="${HOME_URL:-https://github.com/${IMAGE_VENDOR}/${IMAGE_NAME}}"

@@ -6,8 +6,8 @@ set -euo pipefail
 # Desktop packages and services
 ###############################################################################
 # This phase owns RPM, group and COPR installation for the selected desktop.
-# The desktop is selected by the DE build arg (gnome|cinnamon|hyprland|
-# mangowc|niri). Package lists live in desktops/<de>/packages.txt; Cinnamon
+# The desktop is selected by the DE build arg (gnome|cosmic|hyprland|
+# mangowc|niri). Package lists live in desktops/<de>/packages.txt; COSMIC
 # is installed as a dnf group instead.
 #
 # Dux Shell (package `dms`) comes from the duxlabs/dms COPR on the tiling
@@ -16,7 +16,7 @@ set -euo pipefail
 # on the finished image.
 ###############################################################################
 
-: "${DE:?DE must be set (gnome|cinnamon|hyprland|mangowc|niri)}"
+: "${DE:?DE must be set (gnome|cosmic|hyprland|mangowc|niri)}"
 
 # Source helper functions
 # shellcheck source=/dev/null
@@ -52,13 +52,19 @@ case "${DE}" in
 		install_package_list gnome
 		echo "::endgroup::"
 		;;
-	cinnamon)
-		echo "::group:: Install Cinnamon desktop group"
-		# Cinnamon on Fedora 45 is a 6.7.8 development snapshot (see README).
-		# Group install: ~280 packages, includes cinnamon-session, nemo,
-		# cinnamon-control-center and the X session file. GDM stays the DM.
-		dnf5 group install -y cinnamon-desktop
-		install_package_list cinnamon
+	cosmic)
+		echo "::group:: Install COSMIC desktop"
+		# COSMIC 1.10.0 is in the official Fedora 45 repos (verified
+		# 25 Nov 2026 against the F45 repodata: 29 packages, no COPR
+		# needed). Group name is `cosmic-desktop` — the
+		# `cosmic-desktop-environment` name quoted by many guides
+		# does not exist on F45. Group install pulls cosmic-session
+		# and the core desktop (comp, panel, launcher, settings,
+		# greeter, portal); session file is
+		# /usr/share/wayland-sessions/cosmic.desktop. Wayland-only;
+		# XWayland comes in via cosmic-comp.
+		dnf5 group install -y cosmic-desktop
+		install_package_list cosmic
 		echo "::endgroup::"
 		;;
 	hyprland)
@@ -131,9 +137,19 @@ fi
 # GDM is the single display manager for all five images. It is enabled
 # here, not in 10-overlay.sh: that phase runs before GDM exists on
 # base-main, so enabling it there failed with "Unit gdm.service does not
-# exist" (CI run 45642597872, cinnamon/hyprland/mangowc/niri). At this
-# point GDM is installed on every image, so the enable always succeeds.
+# exist" (CI run 45642597872). At this point GDM is installed on every
+# image — but the enable can still fail: a desktop can ship its own
+# display manager whose %post preset claims the display-manager.service
+# alias first (Cinnamon pulled LightDM, COSMIC pulls cosmic-greeter), and
+# `systemctl enable gdm.service` then refuses to overwrite the alias
+# (that killed the cinnamon job of CI run 45667619037). So disable any
+# other display manager and drop the alias symlink first; GDM then
+# owns the alias on every image.
 echo "::group:: Enable display manager"
+for other_dm in lightdm cosmic-greeter; do
+	systemctl disable "${other_dm}.service" 2>/dev/null || true
+done
+rm -f /etc/systemd/system/display-manager.service
 systemctl enable gdm.service
 echo "::endgroup::"
 

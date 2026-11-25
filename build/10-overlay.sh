@@ -18,8 +18,7 @@ set -euo pipefail
 #      (that killed the cinnamon/hyprland/mangowc/niri jobs of CI run
 #      45642597872). The enable step lives at the end of
 #      20-packages-and-services.sh, after the GDM install.
-#      GDM lists all sessions from /usr/share/wayland-sessions/*.desktop
-#      (and xsessions for Cinnamon).
+#      GDM lists all sessions from /usr/share/wayland-sessions/*.desktop.
 ###############################################################################
 
 shopt -s nullglob

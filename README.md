@@ -7,7 +7,7 @@ no reinstall, with automatic rollback to the previous image.
 | Image | Desktop | Base | Tag |
 |---|---|---|---|
 | `novaos-gnome` | GNOME 51 | `silverblue-main:45` | `ghcr.io/giulianogramaglia69-boop/novaos-gnome:45` |
-| `novaos-cinnamon` | Cinnamon 6.7 (dev snapshot) | `base-main:45` | `ghcr.io/giulianogramaglia69-boop/novaos-cinnamon:45` |
+| `novaos-cosmic` | COSMIC 1.10 | `base-main:45` | `ghcr.io/giulianogramaglia69-boop/novaos-cosmic:45` |
 | `novaos-hyprland` | Hyprland 0.57 + Dux Shell | `base-main:45` | `ghcr.io/giulianogramaglia69-boop/novaos-hyprland:45` |
 | `novaos-mangowc` | MangoWM 0.19 + Dux Shell | `base-main:45` | `ghcr.io/giulianogramaglia69-boop/novaos-mangowc:45` |
 | `novaos-niri` | Niri + Dux Shell | `base-main:45` | `ghcr.io/giulianogramaglia69-boop/novaos-niri:45` |
@@ -64,7 +64,7 @@ on manual dispatch.
 
 ## How it is built
 
-One repo, one `Containerfile`, one build arg `DE` (`gnome` / `cinnamon` /
+One repo, one `Containerfile`, one build arg `DE` (`gnome` / `cosmic` /
 `hyprland` / `mangowc` / `niri`). The GitHub Actions matrix builds each
 desktop from the same file. Build scripts live in `build/` (numbered, like
 the finpilot template this is adapted from), per-desktop package lists in
@@ -90,9 +90,10 @@ signature at switch time; the baked ref only describes the update source.
 
 ## Known limits
 
-- **Cinnamon on Fedora 45 is a development snapshot** (`6.7.9^unstable`),
-  not a stable release, and its Wayland session is experimental. The image
-  ships the X11 session (via GDM) as the sane default.
+- **COSMIC is Wayland-only.** No X11 session ships; X11 apps run through
+  XWayland (pulled in by `cosmic-comp`). The `cosmic-greeter` package (and
+  `greetd`) comes along with the group but stays inactive — GDM is the
+  display manager on every image.
 - **MangoWC is not in Fedora.** It comes from the third-party Terra repo
   (Fyra Labs) as package `mangowm` 0.19.0 (binary `/usr/bin/mango`).
   Details and fallbacks (COPR `dennemann/MangoWC`, source build) in
@@ -111,7 +112,7 @@ signature at switch time; the baked ref only describes the update source.
 - **One image per desktop, by design.** Putting all five desktops in one
   image is possible but wrong: image bloat, conflicting portals
   (`xdg-desktop-portal-gnome` vs `-hyprland` vs `-wlr`), secret-provider
-  fights, and Cinnamon's `muffin` next to GNOME's `mutter`.
+  fights, and two compositors (`cosmic-comp` next to GNOME's `mutter`).
 - **No out-of-tree kernel modules.** On ostree, akmods cannot compile at
   boot; modules must be built into the image. Irrelevant on AMD APUs
   (in-tree `amdgpu`), but a real limit if NVIDIA support is ever wanted.
