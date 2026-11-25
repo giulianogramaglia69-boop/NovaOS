@@ -25,9 +25,28 @@ dnf5 versionlock clear
 
 # Disable every third-party repository. copr_install_isolated already disables
 # each COPR it uses; this is the backstop for anything else the build enabled.
+#
+# disable_repo_file rewrites the file section by section: every `enabled=`
+# line becomes `enabled=0`, and a section with no `enabled=` key at all gets
+# `enabled=0` appended (dnf treats a missing key as enabled, so a plain sed
+# that only rewrites existing keys silently leaves such a repo live — that is
+# the most likely reason fedora-multimedia survived the disable pass in CI
+# run 45661875020 even though its file was listed).
 disable_repo_file() {
 	[[ -f "$1" ]] || return 0
-	sed -i -E 's@^[[:space:]]*enabled[[:space:]]*=.*@enabled=0@I' "$1"
+	awk '
+	/^\[.*\]/ {
+		if (section != "" && !has_enabled) print "enabled=0"
+		section = $0; has_enabled = 0
+		print; next
+	}
+	/^[[:space:]]*enabled[[:space:]]*=/ {
+		sub(/=.*/, "=0"); has_enabled = 1
+		print; next
+	}
+	{ print }
+	END { if (section != "" && !has_enabled) print "enabled=0" }
+	' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
 }
 
 # One list feeds both the disable pass and the guard below, so a repository
@@ -96,17 +115,42 @@ done
 # enabled (the ownership pass does not disable rpm-owned files), while anything
 # else dnf reports as live - including Fedora-like names such as fedora-multimedia
 # that leaked through the disable pass - fails the build.
+#
+# live_third_party_repos filters a `dnf5 repo list --enabled` listing on
+# stdin and prints the ids that are not allowlisted.
+live_third_party_repos() {
+	awk '
+		BEGIN { split("fedora updates fedora-updates fedora-cisco-openh264 fedora-updates-archive updates-archive", ok, " "); for (i in ok) allowed[ok[i]] = 1 }
+		NF == 0 { next }
+		$1 == "repo" && $2 == "id" { next }
+		$1 == "Id" || $1 == "Id:" { next }
+		!($1 in allowed) { print $1 }
+	'
+}
+
+# Backstop: disable by repository ID through dnf itself, using dnf's own view
+# of what is enabled. The file pass above can miss a repository for any
+# reason (unexpected file name, unexpected layout); asking dnf and disabling
+# by ID cannot, because dnf reports the repo that is actually live. A failed
+# setopt is only a warning: the guard below re-queries and still fails loudly
+# if anything remains enabled.
 if ! repo_list="$(dnf5 -q repo list --enabled)"; then
 	echo "::error::could not query enabled repositories with dnf5" >&2
 	exit 1
 fi
-live="$(printf '%s\n' "${repo_list}" | awk '
-	BEGIN { split("fedora updates fedora-updates fedora-cisco-openh264 fedora-updates-archive updates-archive", ok, " "); for (i in ok) allowed[ok[i]] = 1 }
-	NF == 0 { next }
-	$1 == "repo" && $2 == "id" { next }
-	$1 == "Id" || $1 == "Id:" { next }
-	!($1 in allowed) { print $1 }
-')"
+live="$(printf '%s\n' "${repo_list}" | live_third_party_repos)"
+if [ -n "${live}" ]; then
+	for repo_id in ${live}; do
+		dnf5 config-manager setopt "${repo_id}.enabled=0" 2>/dev/null ||
+			echo "::warning::could not disable repository ${repo_id} by ID" >&2
+	done
+fi
+
+if ! repo_list="$(dnf5 -q repo list --enabled)"; then
+	echo "::error::could not query enabled repositories with dnf5" >&2
+	exit 1
+fi
+live="$(printf '%s\n' "${repo_list}" | live_third_party_repos)"
 if [ -n "${live}" ]; then
 	echo "::error::third-party repository still enabled: ${live}" >&2
 	exit 1
