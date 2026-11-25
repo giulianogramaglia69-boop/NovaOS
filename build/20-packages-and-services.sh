@@ -28,7 +28,11 @@ echo "::group:: Install shared tools"
 
 # just: the ujust-style entry point and general swiss-army knife.
 # fastfetch: shows the NovaOS identity on the terminal.
-dnf5 install -y just fastfetch
+# brightnessctl: screen brightness for NovaAI (set_brightness).
+# pipewire-utils: pw-record for NovaAI voice input (wpctl is wireplumber,
+# already on every image via the desktop stack).
+# libsecret: secret-tool, the API-key store for NovaAI.
+dnf5 install -y just fastfetch brightnessctl pipewire-utils libsecret
 
 echo "::endgroup::"
 
