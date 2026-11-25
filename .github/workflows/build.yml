@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        de: [gnome, cinnamon, hyprland, mangowc, niri]
+        de: [gnome, cosmic, hyprland, mangowc, niri]
     env:
       IMAGE_NAME: "novaos-${{ matrix.de }}"
 
