@@ -72,14 +72,25 @@ patch_gdm_background() {
             gresource extract "${gst}" "${res}" > "${dest}" || exit 1
         done < <(gresource list "${gst}")
 
-        [[ -f ./theme/gnome-shell.css ]] || { echo "gnome-shell.css not found in theme" >&2; exit 1; }
+        # GNOME 48+ ships no gnome-shell.css: the theme is split into
+        # gnome-shell-dark.css / gnome-shell-light.css (+ high-contrast).
+        # Patch every variant present; if none is there, skip (not fatal).
+        css_files=""
+        for candidate in gnome-shell.css gnome-shell-dark.css gnome-shell-light.css gnome-shell-high-contrast.css; do
+            [[ -f "./theme/${candidate}" ]] && css_files="${css_files} ${candidate}"
+        done
+        if [[ -z "${css_files}" ]]; then
+            echo "no patchable theme CSS found — GDM keeps its default background" >&2
+            exit 0
+        fi
 
         # The NovaOS wallpaper becomes the login background.
         cp /usr/share/backgrounds/novaos/novaos-dark.jpg ./theme/novaos-login.jpg || exit 1
 
         # A later rule with the same specificity wins, so appending is enough
         # even if the theme already has a #lockDialogGroup rule.
-        cat >> ./theme/gnome-shell.css <<'EOF'
+        for css in ${css_files}; do
+            cat >> "./theme/${css}" <<'EOF'
 
 /* NovaOS — login-screen background (added at image build time). */
 #lockDialogGroup {
@@ -88,6 +99,7 @@ patch_gdm_background() {
   background-repeat: no-repeat;
 }
 EOF
+        done
 
         # Rebuild the resource bundle from the extracted tree.
         {
@@ -105,8 +117,9 @@ EOF
         gresource list gnome-shell-theme.gresource | grep -q 'novaos-login.jpg' || exit 1
         cp gnome-shell-theme.gresource "${gst}" || exit 1
         exit 0
-    )
-    rc=$?
+    # NB: the subshell MUST be in an || list: with `set -e` a bare failing
+    # subshell would kill the whole script before rc=$? ever runs.
+    ) || rc=$?
 
     if [[ "${rc}" -ne 0 ]]; then
         cp "${work}/orig.gresource" "${gst}" 2>/dev/null || true
