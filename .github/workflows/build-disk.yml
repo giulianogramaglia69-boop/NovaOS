@@ -18,7 +18,7 @@ on:
         options:
           - niri
           - gnome
-          - cinnamon
+          - cosmic
           - hyprland
           - mangowc
           - all
@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        de: ${{ fromJSON(inputs.de == 'all' && '["gnome", "cinnamon", "hyprland", "mangowc", "niri"]' || format('["{0}"]', inputs.de)) }}
+        de: ${{ fromJSON(inputs.de == 'all' && '["gnome", "cosmic", "hyprland", "mangowc", "niri"]' || format('["{0}"]', inputs.de)) }}
     env:
       IMAGE_NAME: "novaos-${{ matrix.de }}"
 
