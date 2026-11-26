@@ -123,6 +123,27 @@ case "${DE}" in
 		install_package_list mangowc
 		# Dux Shell from the duxlabs/dms COPR.
 		copr_install_isolated "duxlabs/dms" dms quickshell matugen
+		# MangoWC's default /etc/mango/config.conf has no autostart lines
+		# (verified 26 Nov 2026 against the Terra mangowm 0.19.2 RPM):
+		# nothing starts Dux Shell, the wallpaper, or NovaAI on this DE.
+		# Append exec_once lines after the package install (the file is
+		# owned by the package, so overlaying it from system_files would
+		# be clobbered by the install above). Guarded: the COPR fallback
+		# may ship a different config path, and the step must not fail
+		# the whole build if the file is absent.
+		if [ -f /etc/mango/config.conf ]; then
+			if ! grep -q '^exec_once=nova-ai$' /etc/mango/config.conf; then
+				{
+					echo ""
+					echo "# NovaOS: Dux Shell, wallpaper, and NovaAI autostart."
+					echo "exec_once=dms run"
+					echo "exec_once=swaybg -m fill -i /usr/share/backgrounds/novaos/novaos-dark.jpg"
+					echo "exec_once=nova-ai"
+				} >> /etc/mango/config.conf
+			fi
+		else
+			echo "WARNING: /etc/mango/config.conf not found; Dux Shell/NovaAI autostart not wired on MangoWC" >&2
+		fi
 		echo "::endgroup::"
 		;;
 	*)

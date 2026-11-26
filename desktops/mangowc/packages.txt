@@ -8,6 +8,7 @@
 alacritty
 waybar
 wofi
+swaybg
 gnome-software
 xwayland-satellite
 xdg-desktop-portal-wlr

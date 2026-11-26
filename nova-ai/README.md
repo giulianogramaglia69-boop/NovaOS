@@ -109,9 +109,19 @@ successi finti.
   "Ehi Nova" (opt-in, vedi sotto).
 - **Impostazioni**: pulsante ⚙ nel header della chat. Mostra provider e
   modello, e l'interruttore "Ehi Nova" con download del modello e stato.
-- **Autostart**: `nova-ai.desktop` (`Exec=nova-ai`,
-  `X-GNOME-Autostart-enabled=true`); l'integrazione nell'immagine lo
-  copia in `/etc/xdg/autostart/`.
+- **Autostart**: la tab parte al login su tutti e 5 i DE. Meccanismo per
+  DE (l'app è single-instance via D-Bus — `org.novaos.NovaAI` — quindi
+  un doppio avvio attiva solo la tab già aperta):
+  - GNOME, COSMIC: `/etc/xdg/autostart/nova-ai.desktop`
+    (`X-GNOME-Autostart-enabled=true`).
+  - Niri: `spawn-at-startup "nova-ai"` in `config.kdl` (Niri non legge
+    l'autostart XDG).
+  - Hyprland: `hl.exec_cmd("nova-ai")` in `hyprland.lua` (idem).
+  - MangoWC: `exec_once=nova-ai` aggiunto in build a
+    `/etc/mango/config.conf` (il default del pacchetto non ha righe di
+    autostart).
+  La voce nel menu applicazioni è
+  `/usr/share/applications/nova-ai.desktop`.
 
 ## Wake word "Ehi Nova" (opt-in, default OFF)
 

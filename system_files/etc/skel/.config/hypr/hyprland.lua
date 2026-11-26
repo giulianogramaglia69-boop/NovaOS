@@ -15,6 +15,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("waybar")
     -- NovaOS wallpaper (hyprpaper.conf in the same directory).
     hl.exec_cmd("hyprpaper")
+    -- NovaAI (system assistant tab).
+    hl.exec_cmd("nova-ai")
 end)
 
 hl.config({

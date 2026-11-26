@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=NovaAI
+Comment=Assistente AI di NovaOS
+Exec=nova-ai
+Icon=novaos-logo
+Terminal=false
+Categories=Utility;
+StartupWMClass=org.novaos.NovaAI

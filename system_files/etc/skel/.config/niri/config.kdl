@@ -48,6 +48,10 @@ spawn-at-startup "dms" "run"
 // NovaOS wallpaper (swaybg; Dux Shell can override it from its own settings).
 spawn-at-startup "swaybg" "-m" "fill" "-i" "/usr/share/backgrounds/novaos/novaos-dark.jpg"
 
+// NovaAI (system assistant tab; single-instance via its D-Bus name,
+// so a second launch just activates the running tab).
+spawn-at-startup "nova-ai"
+
 binds {
     Mod+Return { spawn "alacritty"; }
     Mod+D { spawn "fuzzel"; }

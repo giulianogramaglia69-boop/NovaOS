@@ -29,6 +29,21 @@ source, selected by the `MANGOWC_SOURCE` build arg (`terra` by default).
    build script yet. Upstream is `github.com/DreamMaoMao/mangowc`
    (now org `mangowm`); needs meson + wlroots 0.19.2 + scenefx 0.4.1.
 
+## Autostart on NovaOS (added 26 Nov 2026)
+
+The package's default `/etc/mango/config.conf` has **no autostart lines**
+(verified against the Terra mangowm 0.19.2 RPM): nothing starts Dux
+Shell, a wallpaper, or NovaAI. `build/20-packages-and-services.sh`
+therefore appends three `exec_once` lines to `/etc/mango/config.conf`
+after the package install (appended at build time, not overlaid from
+`system_files/`, because the file is owned by the package and the
+install would clobber the overlay):
+`exec_once=dms run`, `exec_once=swaybg -m fill -i
+/usr/share/backgrounds/novaos/novaos-dark.jpg`, `exec_once=nova-ai`.
+`swaybg` comes from `desktops/mangowc/packages.txt`. If the config file
+is absent (e.g. the COPR fallback ships a different path), the step only
+warns and the build continues.
+
 ## Supply-chain note
 
 Terra is a third-party repo: it can lag behind Fedora releases, disappear,
