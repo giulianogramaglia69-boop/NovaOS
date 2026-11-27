@@ -37,6 +37,11 @@ echo "::group:: Install shared tools"
 # flatpak: app installs for NovaAI + BoxBuddy (also in the Atomic base,
 # listed here so the image never depends on that assumption).
 # power-profiles-daemon: powerprofilesctl for NovaAI power profiles.
+# Fedora 41+ ships tuned-ppd as the default power daemon instead, and
+# the two conflict (tuned-ppd provides the same ppd-service): installing
+# power-profiles-daemon on top of it fails the transaction. Where
+# tuned-ppd is present (silverblue-main base), swap it out; where it is
+# absent, install power-profiles-daemon normally.
 # firefox: headless browser for the NovaAI `browser` tool (WebDriver).
 # bubblewrap: sandbox for NovaAI read-only shell commands (bwrap).
 # upower: battery status for the NovaAI watchers (`nova-ai --check`).
@@ -47,7 +52,12 @@ echo "::group:: Install shared tools"
 # already list lxpolkit in their packages.txt, here it covers
 # gnome/cosmic too). It is autostarted everywhere: XDG autostart
 # (GNOME/COSMIC) + spawn/exec_once on the tiling compositors.
-dnf5 install -y just fastfetch brightnessctl pipewire-utils libsecret distrobox grim flatpak power-profiles-daemon firefox bubblewrap upower libnotify lxpolkit
+if rpm -q tuned-ppd >/dev/null 2>&1; then
+	dnf5 swap -y tuned-ppd power-profiles-daemon
+else
+	dnf5 install -y power-profiles-daemon
+fi
+dnf5 install -y just fastfetch brightnessctl pipewire-utils libsecret distrobox grim flatpak firefox bubblewrap upower libnotify lxpolkit
 
 echo "::endgroup::"
 

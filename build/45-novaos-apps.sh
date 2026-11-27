@@ -39,6 +39,7 @@ echo "::endgroup::"
 echo "::group:: NovaOS apps — cargo build"
 
 # The build context is mounted read-only; copy the source to a writable dir.
+mkdir -p "${BUILD_DIR}"
 cp -a "${NOVAOS_APPS_SRC}" "${BUILD_DIR}/src"
 export CARGO_HOME="${BUILD_DIR}/cargo-home"
 export CARGO_TARGET_DIR="${BUILD_DIR}/target"
