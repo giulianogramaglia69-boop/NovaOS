@@ -176,6 +176,66 @@ pub struct LlmClient {
     pub api_key: Option<String>,
 }
 
+/// Parse a textual tool call from a plain-text answer (fallback for
+/// providers that reject the native `tools` parameter). The model is
+/// instructed to answer with a single fenced JSON block:
+/// ```json
+/// {"tool": "shell", "arguments": {"command": "ls"}}
+/// ```
+/// Returns the call (id `text-call-N`) when a well-formed block is
+/// found, else None. The block is stripped from the returned text.
+pub fn parse_text_tool_call(text: &str) -> Option<(ToolCall, String)> {
+    let start = text.find("```json").or_else(|| text.find("```"))?;
+    let after_fence = &text[start..];
+    let body_start = after_fence.find('\n').map(|i| i + 1)?;
+    let body = &after_fence[body_start..];
+    let end = body.find("```")?;
+    let block = body[..end].trim();
+    let v: Value = serde_json::from_str(block).ok()?;
+    let name = v.get("tool")?.as_str()?.to_string();
+    if name.is_empty() {
+        return None;
+    }
+    let arguments = v
+        .get("arguments")
+        .cloned()
+        .unwrap_or(Value::Object(Default::default()));
+    let raw = serde_json::to_string(&arguments).unwrap_or_else(|_| "{}".to_string());
+    let call = ToolCall {
+        id: "text-call-1".to_string(),
+        name,
+        arguments,
+        arguments_raw: raw,
+    };
+    let mut rest = String::new();
+    rest.push_str(text[..start].trim());
+    let tail = body[end + 3..].trim();
+    if !tail.is_empty() {
+        if !rest.is_empty() {
+            rest.push('\n');
+        }
+        rest.push_str(tail);
+    }
+    Some((call, rest))
+}
+
+/// True when a provider error message suggests the `tools` parameter
+/// itself is rejected (custom / minimal endpoints). Used to decide
+/// the one-shot retry without tools.
+pub fn looks_like_tools_unsupported(msg: &str) -> bool {
+    let m = msg.to_ascii_lowercase();
+    (m.contains("tool") || m.contains("function"))
+        && (m.contains("unsupported")
+            || m.contains("not supported")
+            || m.contains("unknown")
+            || m.contains("invalid"))
+}
+
+/// Instruction appended to the system prompt when native function
+/// calling is unavailable: the model must answer with a fenced JSON
+/// tool call instead.
+pub const TEXT_TOOL_INSTRUCTION: &str = "Questo provider non supporta le chiamate a funzione native: quando vuoi usare uno strumento, rispondi SOLO con un blocco di codice json contenente {\"tool\": \"nome_strumento\", \"arguments\": {...}} e nient'altro. Per rispondere senza strumenti, scrivi solo il testo.";
+
 impl LlmClient {
     pub fn from_config(cfg: &Config) -> Self {
         LlmClient {
@@ -211,27 +271,73 @@ impl LlmClient {
     }
 
     /// One chat completions call. `tools` may be empty (plain chat).
+    /// When the provider rejects the `tools` parameter (HTTP 400
+    /// mentioning tools/functions), the call is retried once without
+    /// tools and a textual tool call in the answer is parsed instead
+    /// (see [`parse_text_tool_call`]).
     pub fn chat(
         &self,
         messages: &[ChatMessage],
         tools: &[ToolDef],
     ) -> Result<LlmResponse, LlmError> {
-        let key = self.api_key.clone().ok_or(LlmError::NoKey)?;
+        let send_tools = !tools.is_empty();
+        match self.chat_inner(messages, tools, send_tools) {
+            Ok(r) => Ok(r),
+            Err(LlmError::Http(400, msg)) if send_tools && looks_like_tools_unsupported(&msg) => {
+                // Fallback: same messages + textual-tool instruction,
+                // no `tools` parameter at all.
+                let mut fallback: Vec<ChatMessage> = messages.to_vec();
+                if let Some(sys) = fallback.iter_mut().find(|m| m.role == "system") {
+                    sys.text.push_str("\n\n");
+                    sys.text.push_str(TEXT_TOOL_INSTRUCTION);
+                } else {
+                    fallback.insert(0, ChatMessage::system(TEXT_TOOL_INSTRUCTION));
+                }
+                let resp = self.chat_inner(&fallback, &[], false)?;
+                if let Some((call, rest)) = parse_text_tool_call(&resp.text) {
+                    Ok(LlmResponse {
+                        text: rest,
+                        tool_calls: vec![call],
+                    })
+                } else {
+                    Ok(resp)
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    fn chat_inner(
+        &self,
+        messages: &[ChatMessage],
+        tools: &[ToolDef],
+        send_tools: bool,
+    ) -> Result<LlmResponse, LlmError> {
+        // Local (Ollama) needs no API key; every other provider does.
+        let key = match &self.api_key {
+            Some(k) => Some(k.clone()),
+            None if self.provider == ProviderKind::Local => None,
+            None => return Err(LlmError::NoKey),
+        };
         if self.base_url.is_empty() {
             return Err(LlmError::Transport(
                 "base URL del provider mancante (provider Custom senza URL?)".to_string(),
             ));
         }
-        let body = json!({
+        let mut body = json!({
             "model": self.model,
             "messages": messages.iter().map(|m| m.to_json()).collect::<Vec<_>>(),
-            "tools": tools.iter().map(|t| t.to_json()).collect::<Vec<_>>(),
-            "tool_choice": "auto",
         });
+        if send_tools {
+            body["tools"] = json!(tools.iter().map(|t| t.to_json()).collect::<Vec<_>>());
+            body["tool_choice"] = Value::String("auto".to_string());
+        }
         let mut req = Self::http_agent()
             .post(&self.endpoint("/chat/completions"))
-            .header("Authorization", &format!("Bearer {key}"))
             .header("Content-Type", "application/json");
+        if let Some(k) = &key {
+            req = req.header("Authorization", &format!("Bearer {k}"));
+        }
         if self.provider == ProviderKind::OpenRouter {
             req = req
                 .header("HTTP-Referer", "https://novaos.local/")

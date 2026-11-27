@@ -15,8 +15,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
 ureq = { version = "3", features = ["json", "platform-verifier"] }
+# Base64 for screenshots (image_url data URLs).
+base64 = "0.22"
 # Model download (unzip). Pure Rust, always available.
 zip = "2"
+# Piper TTS: extract the piper .tar.gz release (flate2 is already a
+# transitive dep via zip; tar is a small pure-Rust tar reader).
+tar = "0.4"
+flate2 = "1"
 # Wake word ("Ehi Nova"): Vosk offline recognition + cpal mic capture.
 # Optional behind the `wakeword` feature: vosk-sys downloads the native
 # Vosk library at build time, and cpal needs ALSA dev headers. The

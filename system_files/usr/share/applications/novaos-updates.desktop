@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Aggiornamenti NovaOS
+Comment=Aggiornamenti di sistema e cambio desktop
+Exec=novaos-updates
+Icon=novaos-logo
+Terminal=false
+Categories=Settings;System;
+StartupWMClass=org.novaos.Updates

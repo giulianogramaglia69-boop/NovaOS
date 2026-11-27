@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Configurazione NovaOS
+Comment=Benvenuto e pacchetti opzionali: codec multimediali, gaming, sviluppo
+Exec=novaos-setup
+Icon=novaos-logo
+Terminal=false
+Categories=Settings;System;
+StartupWMClass=org.novaos.Setup

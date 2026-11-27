@@ -18,6 +18,8 @@ use crate::AppState;
 pub(crate) enum UiEvent {
     AgentReply(ChatOutcome),
     Transcript(Result<String, String>),
+    /// TTS failed or the voice download failed: show it as a note.
+    TtsNote(String),
     /// A short note bubble (wake word only).
     #[cfg(feature = "wakeword")]
     Note(String),
@@ -200,7 +202,18 @@ pub fn show_chat(app: &adw::Application, state: Rc<RefCell<AppState>>) {
     win.set_content(Some(&content));
 
     // Close hides the window instead of quitting (the tab reopens it).
-    win.connect_close_request(|win| {
+    // Ending a chat session saves a summary in the memory, so the
+    // next session starts with context (worker thread: the LLM call
+    // must not block the UI).
+    let agent_for_close = agent.clone();
+    win.connect_close_request(move |win| {
+        let agent = agent_for_close.clone();
+        std::thread::spawn(move || {
+            agent
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .save_session_summary();
+        });
         win.set_visible(false);
         glib::Propagation::Stop
     });
@@ -386,7 +399,6 @@ pub fn show_chat(app: &adw::Application, state: Rc<RefCell<AppState>>) {
         let send_btn = send_btn.clone();
         let agent = agent.clone();
         let tx = tx.clone();
-        #[cfg(feature = "wakeword")]
         let state = state.clone();
         glib::MainContext::default().spawn_local(async move {
             while let Ok(ev) = rx.recv().await {
@@ -396,6 +408,28 @@ pub fn show_chat(app: &adw::Application, state: Rc<RefCell<AppState>>) {
                         match outcome {
                             ChatOutcome::Answer(text) => {
                                 add_bubble(&list, &scroll, &text, false);
+                                // Spoken answers (opt-in): download the
+                                // voice on first use, then speak in a
+                                // worker thread so the UI never blocks.
+                                if state.borrow().config.tts {
+                                    let tx = tx.clone();
+                                    std::thread::spawn(move || {
+                                        if !nova_ai_core::tts::tts_ready()
+                                            && let Err(e) =
+                                                nova_ai_core::tts::download_all(|_, _| {})
+                                        {
+                                            let _ = tx.send_blocking(UiEvent::TtsNote(format!(
+                                                "Voce non disponibile: {e}"
+                                            )));
+                                            return;
+                                        }
+                                        if let Err(e) = nova_ai_core::tts::speak(&text, 800) {
+                                            let _ = tx.send_blocking(UiEvent::TtsNote(format!(
+                                                "Lettura ad alta voce fallita: {e}"
+                                            )));
+                                        }
+                                    });
+                                }
                             }
                             ChatOutcome::Error(err) => {
                                 add_note(&list, &scroll, &format!("Errore: {err}"));
@@ -404,6 +438,9 @@ pub fn show_chat(app: &adw::Application, state: Rc<RefCell<AppState>>) {
                                 add_confirmation_row(&list, &scroll, &agent, &tx, action);
                             }
                         }
+                    }
+                    UiEvent::TtsNote(text) => {
+                        add_note(&list, &scroll, &text);
                     }
                     UiEvent::Transcript(result) => {
                         match result {
@@ -431,7 +468,7 @@ pub fn show_chat(app: &adw::Application, state: Rc<RefCell<AppState>>) {
     add_bubble(
         &list,
         &scroll,
-        "Ciao, sono NovaAI. Posso aprire app, installare software, regolare volume, luminosità, Wi-Fi e tema. Cosa facciamo?",
+        "Ciao, sono NovaAI. Posso aprire app, installare software, usare il terminale, gestire file e finestre, controllare il sistema, cercare sul web e usare il browser. Ricordo quello che mi chiedi di ricordare, faccio piani multi-passo, leggo il calendario e la rubrica. Cosa facciamo?",
         false,
     );
     #[cfg(feature = "wakeword")]
@@ -441,6 +478,21 @@ pub fn show_chat(app: &adw::Application, state: Rc<RefCell<AppState>>) {
             &scroll,
             "“Ehi Nova” è attivo ma il modello non è scaricato: aprilo dalle Impostazioni per scaricarlo.",
         );
+    }
+    if state.borrow().config.tts && !nova_ai_core::tts::tts_ready() {
+        add_note(
+            &list,
+            &scroll,
+            "Le risposte parlate sono attive ma la voce non è scaricata: la scarico alla prima risposta (circa 55 MB).",
+        );
+    }
+    // Unfinished plans: offer to resume them.
+    for note in agent
+        .lock()
+        .map(|a| a.unfinished_plan_notes())
+        .unwrap_or_else(|e| e.into_inner().unfinished_plan_notes())
+    {
+        add_note(&list, &scroll, &note);
     }
 
     state.borrow_mut().chat_win = Some(win.clone());

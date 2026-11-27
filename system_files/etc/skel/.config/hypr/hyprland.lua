@@ -17,6 +17,9 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("hyprpaper")
     -- NovaAI (system assistant tab).
     hl.exec_cmd("nova-ai")
+    -- Polkit agent (pkexec prompts) + first-run setup (once, then seen).
+    hl.exec_cmd("lxpolkit")
+    hl.exec_cmd("novaos-setup --first-run")
 end)
 
 hl.config({

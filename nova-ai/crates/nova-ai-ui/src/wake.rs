@@ -15,13 +15,6 @@ use crate::AppState;
 use crate::chat;
 use crate::tab;
 
-/// Events of a model download, sent from a worker thread to the main
-/// loop (used by the setup and settings screens for progress).
-pub(crate) enum DownloadEvent {
-    Progress(u64, u64),
-    Done(Result<std::path::PathBuf, String>),
-}
-
 /// Start the listener (model must already be downloaded). Shows the
 /// mic dot on the tab. Returns a user-facing error when the model is
 /// missing or the mic cannot be opened.

@@ -39,7 +39,26 @@ pub struct AppState {
     pub wake_tx: Option<async_channel::Sender<nova_ai_core::wakeword::WakeEvent>>,
 }
 
+/// Events of a model/voice download, sent from a worker thread to
+/// the main loop (used by the setup and settings screens for
+/// progress). Lives at the crate root, not in `wake` (feature-gated):
+/// the TTS download uses it too and works without the wake word.
+pub(crate) enum DownloadEvent {
+    Progress(u64, u64),
+    Done(Result<std::path::PathBuf, String>),
+}
+
 fn main() {
+    // Proactive checks (v3): `nova-ai --check` runs the watchers
+    // (system updates, low battery, full disk) and notifies via
+    // notify-send when a threshold trips. No GUI is started.
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--check") {
+        // Alerts are the normal outcome, not a failure: exit 0.
+        let _alerts = nova_ai_core::watchers::check_and_notify();
+        std::process::exit(0);
+    }
+
     let app = Application::builder()
         .application_id("org.novaos.NovaAI")
         .flags(ApplicationFlags::empty())

@@ -7,3 +7,4 @@ cosign.key
 *.qcow2
 *.raw
 nova-ai/target/
+novaos-apps/target/

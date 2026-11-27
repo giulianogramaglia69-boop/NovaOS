@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/novaos-common",
+    "crates/novaos-setup",
+    "crates/novaos-updates",
+    "crates/novaos-snapshots",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+authors = ["Giuliano Gramaglia"]

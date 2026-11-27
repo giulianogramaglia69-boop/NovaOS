@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=lxpolkit
+Comment=Agente di autenticazione PolicyKit (richieste di password per le app di sistema NovaOS)
+Exec=lxpolkit
+Icon=novaos-logo
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

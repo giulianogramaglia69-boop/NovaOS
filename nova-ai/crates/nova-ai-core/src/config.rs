@@ -34,6 +34,31 @@ pub struct Config {
     /// persists here; the model itself is downloaded on first use.
     #[serde(default)]
     pub wake_word: bool,
+    /// Spoken answers (Piper TTS, offline). Opt-in, default OFF, like
+    /// the wake word. The voice is downloaded on first use.
+    #[serde(default)]
+    pub tts: bool,
+    /// Persistent memory (facts + last session summary). Default ON:
+    /// the agent remembers what the user asks it to remember. The
+    /// data lives in ~/.local/share/nova-ai/memory/ (plain files).
+    #[serde(default = "default_true")]
+    pub memory: bool,
+    /// Hourly proactive watchers (updates / battery / disk) via a
+    /// user systemd timer. Default OFF.
+    #[serde(default)]
+    pub watchers: bool,
+    /// Calendar ICS feed URL (e.g. the private Google Calendar
+    /// iCalendar link). Empty = not configured.
+    #[serde(default)]
+    pub calendar_url: String,
+    /// Local .ics file path (alternative to the URL). Empty = not
+    /// configured.
+    #[serde(default)]
+    pub calendar_file: String,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_provider_name() -> String {
@@ -50,6 +75,11 @@ impl Config {
             model: model.to_string(),
             api_key: None,
             wake_word: false,
+            tts: false,
+            memory: true,
+            watchers: false,
+            calendar_url: String::new(),
+            calendar_file: String::new(),
         }
     }
 
@@ -159,9 +189,10 @@ impl Config {
         Ok(KeyLocation::ConfigFile)
     }
 
-    /// True when an API key is available from any store.
+    /// True when an API key is available from any store. The Local
+    /// (Ollama) provider needs no key at all.
     pub fn has_key(&self) -> bool {
-        self.api_key().is_some()
+        self.provider_kind() == ProviderKind::Local || self.api_key().is_some()
     }
 }
 
@@ -234,6 +265,11 @@ mod tests {
             model: "m".to_string(),
             api_key: None,
             wake_word: false,
+            tts: false,
+            memory: true,
+            watchers: false,
+            calendar_url: String::new(),
+            calendar_file: String::new(),
         };
         assert_eq!(cfg.provider_kind(), ProviderKind::Custom);
     }
@@ -256,6 +292,59 @@ mod tests {
         cfg.save_to(&p).unwrap();
         let back = Config::load_from(&p).unwrap();
         assert!(back.wake_word);
+        assert_eq!(back, cfg);
+        let _ = fs::remove_file(&p);
+    }
+
+    #[test]
+    fn new_fields_default_and_persist() {
+        // Old config files without the new fields still load.
+        let p = tmp_path("v3-old.toml");
+        let mut f = fs::File::create(&p).unwrap();
+        writeln!(f, "provider = \"groq\"").unwrap();
+        drop(f);
+        let cfg = Config::load_from(&p).unwrap();
+        assert!(cfg.memory); // default ON
+        assert!(!cfg.watchers);
+        assert!(cfg.calendar_url.is_empty());
+        assert!(cfg.calendar_file.is_empty());
+        let _ = fs::remove_file(&p);
+
+        // Round-trip with the new fields set.
+        let p = tmp_path("v3-new.toml");
+        let mut cfg = Config::for_provider(ProviderKind::Groq);
+        cfg.memory = false;
+        cfg.watchers = true;
+        cfg.calendar_url = "https://example.invalid/cal.ics".to_string();
+        cfg.calendar_file = "/tmp/cal.ics".to_string();
+        cfg.save_to(&p).unwrap();
+        let back = Config::load_from(&p).unwrap();
+        assert_eq!(back, cfg);
+        let _ = fs::remove_file(&p);
+
+        // Local needs no key.
+        let local = Config::for_provider(ProviderKind::Local);
+        assert!(local.has_key());
+    }
+
+    #[test]
+    fn tts_defaults_off_and_persists() {
+        // Old config files without the field still load (default OFF).
+        let p = tmp_path("tts-old.toml");
+        let mut f = fs::File::create(&p).unwrap();
+        writeln!(f, "provider = \"groq\"").unwrap();
+        drop(f);
+        let cfg = Config::load_from(&p).unwrap();
+        assert!(!cfg.tts);
+        let _ = fs::remove_file(&p);
+
+        // Round-trip with the toggle on.
+        let p = tmp_path("tts-on.toml");
+        let mut cfg = Config::for_provider(ProviderKind::Groq);
+        cfg.tts = true;
+        cfg.save_to(&p).unwrap();
+        let back = Config::load_from(&p).unwrap();
+        assert!(back.tts);
         assert_eq!(back, cfg);
         let _ = fs::remove_file(&p);
     }

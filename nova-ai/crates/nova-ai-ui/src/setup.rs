@@ -39,7 +39,7 @@ pub fn show_setup(
     list.set_margin_end(16);
 
     let intro = gtk4::Label::new(Some(
-        "Per funzionare NovaAI ha bisogno di un provider AI e di una chiave API. \
+        "Per funzionare NovaAI ha bisogno di un provider AI e di una chiave API (tranne per il provider locale Ollama, che non ne usa). \
          La chiave viene salvata nel portachiavi di sistema (libsecret); se non è \
          disponibile, nel file ~/.config/nova-ai/config.toml (permessi 0600).",
     ));
@@ -88,6 +88,15 @@ pub fn show_setup(
     key_row.append(&key_entry);
     list.append(&key_row);
 
+    // Local (Ollama) note, shown only for the Local provider.
+    let local_note = gtk4::Label::new(Some(
+        "Locale (Ollama): nessuna chiave API. Ollama deve essere installato e in esecuzione su questo PC (da ollama.com — non è incluso in NovaOS: troppo grosso); scarica il modello con `ollama pull qwen2.5:7b`.",
+    ));
+    local_note.set_wrap(true);
+    local_note.set_xalign(0.0);
+    local_note.set_visible(false);
+    list.append(&local_note);
+
     // Wake word (opt-in, default OFF). The mic only listens locally;
     // the audio never leaves the device until the phrase is heard.
     #[cfg(feature = "wakeword")]
@@ -111,10 +120,26 @@ pub fn show_setup(
         list.append(&wake_progress);
     }
 
+    // Spoken answers (opt-in, default OFF). The flag is only persisted
+    // here; Piper + the voice download lazily on the first spoken
+    // answer (~55 MB).
+    let tts_check = gtk4::CheckButton::with_label("Leggi ad alta voce le risposte (voce offline)");
+    list.append(&tts_check);
+    {
+        let explain = gtk4::Label::new(Some(
+            "Se attivo, NovaAI legge le risposte con una voce italiana offline (Piper). La voce e il sintetizzatore (circa 55 MB) si scaricano da soli alla prima risposta parlata.",
+        ));
+        explain.set_wrap(true);
+        explain.set_xalign(0.0);
+        list.append(&explain);
+    }
+
     // Prefill from the selected provider.
     let apply_provider_defaults = {
         let url_entry = url_entry.clone();
         let model_entry = model_entry.clone();
+        let key_entry = key_entry.clone();
+        let local_note = local_note.clone();
         let provider_combo = provider_combo.clone();
         Rc::new(move || {
             let kind = ProviderKind::all()
@@ -124,6 +149,10 @@ pub fn show_setup(
             let (url, model) = provider_defaults(kind);
             url_entry.set_text(url);
             model_entry.set_text(model);
+            // Local needs no key: hide the key field, show the note.
+            let local = kind == ProviderKind::Local;
+            key_entry.set_sensitive(!local);
+            local_note.set_visible(local);
         })
     };
     apply_provider_defaults();
@@ -161,6 +190,7 @@ pub fn show_setup(
         let wake_check = wake_check.clone();
         #[cfg(feature = "wakeword")]
         let wake_progress = wake_progress.clone();
+        let tts_check = tts_check.clone();
         // Clone for the closure: connect_clicked borrows the button
         // while the closure moves its own handle in, so the receiver
         // and the captured handle must be different clones.
@@ -177,7 +207,9 @@ pub fn show_setup(
             let wake_requested = wake_check.is_active();
             #[cfg(not(feature = "wakeword"))]
             let wake_requested = false;
-            if key.trim().is_empty() {
+            let tts_requested = tts_check.is_active();
+            // Local (Ollama) needs no API key.
+            if kind != ProviderKind::Local && key.trim().is_empty() {
                 status.set_text("Inserisci la chiave API.");
                 return;
             }
@@ -194,7 +226,12 @@ pub fn show_setup(
                 cfg.base_url = base_url;
             }
             cfg.model = model;
-            status.set_text("Verifico la chiave…");
+            cfg.tts = tts_requested;
+            status.set_text(if kind == ProviderKind::Local {
+                "Verifico Ollama…"
+            } else {
+                "Verifico la chiave…"
+            });
             save_btn_c.set_sensitive(false);
 
             let state = state.clone();
@@ -228,8 +265,14 @@ pub fn show_setup(
                     match result {
                         Ok(reply) => {
                             // Store the key (keyring first, config fallback).
+                            // Local needs no key: nothing to store.
                             let mut cfg2 = cfg.clone();
-                            match cfg2.store_key(&key) {
+                            let stored: Result<(), String> = if kind == ProviderKind::Local {
+                                Ok(())
+                            } else {
+                                cfg2.store_key(&key).map(|_| ())
+                            };
+                            match stored {
                                 Ok(_) => {
                                     let _ = cfg2.save_without_key().or_else(|_| cfg2.save());
                                     state.borrow_mut().config = cfg2.clone();
@@ -326,7 +369,7 @@ fn start_model_download(
     save_btn: &gtk4::Button,
     wake_check: &gtk4::CheckButton,
 ) {
-    use crate::wake::DownloadEvent;
+    use crate::DownloadEvent;
 
     status.set_text("Scarico il modello “Ehi Nova” (47 MB)…");
     progress.set_visible(true);

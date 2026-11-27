@@ -32,7 +32,22 @@ echo "::group:: Install shared tools"
 # pipewire-utils: pw-record for NovaAI voice input (wpctl is wireplumber,
 # already on every image via the desktop stack).
 # libsecret: secret-tool, the API-key store for NovaAI.
-dnf5 install -y just fastfetch brightnessctl pipewire-utils libsecret
+# distrobox: containers for other distros, driven by NovaAI + BoxBuddy.
+# grim: screenshots for NovaAI (wlroots compositors).
+# flatpak: app installs for NovaAI + BoxBuddy (also in the Atomic base,
+# listed here so the image never depends on that assumption).
+# power-profiles-daemon: powerprofilesctl for NovaAI power profiles.
+# firefox: headless browser for the NovaAI `browser` tool (WebDriver).
+# bubblewrap: sandbox for NovaAI read-only shell commands (bwrap).
+# upower: battery status for the NovaAI watchers (`nova-ai --check`).
+# libnotify: notify-send, the desktop notifications of the watchers.
+# lxpolkit: PolicyKit authentication agent, so pkexec password prompts
+# work on every DE (GNOME has its own inside gnome-shell; COSMIC has
+# none of its own — pop-os/cosmic-epoch #2116; the tiling images
+# already list lxpolkit in their packages.txt, here it covers
+# gnome/cosmic too). It is autostarted everywhere: XDG autostart
+# (GNOME/COSMIC) + spawn/exec_once on the tiling compositors.
+dnf5 install -y just fastfetch brightnessctl pipewire-utils libsecret distrobox grim flatpak power-profiles-daemon firefox bubblewrap upower libnotify lxpolkit
 
 echo "::endgroup::"
 
@@ -125,20 +140,23 @@ case "${DE}" in
 		copr_install_isolated "duxlabs/dms" dms quickshell matugen
 		# MangoWC's default /etc/mango/config.conf has no autostart lines
 		# (verified 26 Nov 2026 against the Terra mangowm 0.19.2 RPM):
-		# nothing starts Dux Shell, the wallpaper, or NovaAI on this DE.
-		# Append exec_once lines after the package install (the file is
-		# owned by the package, so overlaying it from system_files would
-		# be clobbered by the install above). Guarded: the COPR fallback
-		# may ship a different config path, and the step must not fail
-		# the whole build if the file is absent.
+		# nothing starts Dux Shell, the wallpaper, NovaAI, the polkit
+		# agent or the first-run setup on this DE. Append exec_once
+		# lines after the package install (the file is owned by the
+		# package, so overlaying it from system_files would be clobbered
+		# by the install above). Guarded: the COPR fallback may ship a
+		# different config path, and the step must not fail the whole
+		# build if the file is absent.
 		if [ -f /etc/mango/config.conf ]; then
 			if ! grep -q '^exec_once=nova-ai$' /etc/mango/config.conf; then
 				{
 					echo ""
-					echo "# NovaOS: Dux Shell, wallpaper, and NovaAI autostart."
+					echo "# NovaOS: Dux Shell, wallpaper, NovaAI, polkit agent and first-run setup autostart."
 					echo "exec_once=dms run"
 					echo "exec_once=swaybg -m fill -i /usr/share/backgrounds/novaos/novaos-dark.jpg"
 					echo "exec_once=nova-ai"
+					echo "exec_once=lxpolkit"
+					echo "exec_once=novaos-setup --first-run"
 				} >> /etc/mango/config.conf
 			fi
 		else

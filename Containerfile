@@ -35,6 +35,7 @@ COPY build /build
 COPY system_files /system_files
 COPY desktops /desktops
 COPY nova-ai /nova-ai
+COPY novaos-apps /novaos-apps
 
 # Base image. GNOME rides on silverblue-main (GNOME 51 on F45); the other four
 # desktops are installed on top of the desktop-less base-main.
@@ -57,7 +58,9 @@ ARG VERSION=""
 ### MODIFICATIONS
 ## Build scripts run in order: image identity, runtime overlays, desktop
 ## packages and services, branding (logo + wallpapers + login screen),
-## NovaAI (the system AI agent, built from source), then cleanup. The DE
+## NovaAI (the system AI agent, built from source), Flatpaks (BoxBuddy
+## from Flathub), the NovaOS system apps (setup / updates / snapshots,
+## built from source), then cleanup. The DE
 ## build arg selects the desktop inside 20-packages-and-services.sh.
 ## Scripts are invoked via `bash`, not executed directly: files pushed to
 ## GitHub through the API lose their executable bit, and a direct call fails
@@ -116,6 +119,31 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/boot \
     --mount=type=tmpfs,dst=/tmp \
     bash /ctx/build/40-nova-ai.sh
+
+### FLATPAKS
+## Preinstalls BoxBuddy (Distrobox GUI) from Flathub in system scope.
+## Runs after NovaAI so the flatpak binary (installed by
+## 20-packages-and-services.sh) is present; before cleanup so a failed
+## Flatpak install fails the build instead of shipping a broken image.
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache/libdnf5 \
+    --mount=type=cache,dst=/var/cache/rpm-ostree \
+    --mount=type=tmpfs,dst=/boot \
+    --mount=type=tmpfs,dst=/tmp \
+    bash /ctx/build/50-flatpaks.sh
+
+### SYSTEM APPS
+## Builds novaos-setup, novaos-updates and novaos-snapshots from source
+## (novaos-apps/) and installs the three binaries. Runs after the
+## Flatpaks so a failed app build fails the build instead of shipping an
+## image without its system apps; before cleanup so no third-party repo
+## the apps might enable at runtime can leak into the image.
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache/libdnf5 \
+    --mount=type=cache,dst=/var/cache/rpm-ostree \
+    --mount=type=tmpfs,dst=/boot \
+    --mount=type=tmpfs,dst=/tmp \
+    bash /ctx/build/45-novaos-apps.sh
 
 ### CLEANUP
 ## Finalises package sources, disables third-party repos, then prunes build

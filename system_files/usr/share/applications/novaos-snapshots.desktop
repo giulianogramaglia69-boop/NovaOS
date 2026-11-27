@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Snapshot NovaOS
+Comment=Snapshot di sistema: avvia, fissa o ripristina un deployment
+Exec=novaos-snapshots
+Icon=novaos-logo
+Terminal=false
+Categories=Settings;System;
+StartupWMClass=org.novaos.Snapshots

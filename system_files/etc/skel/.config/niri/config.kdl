@@ -52,6 +52,11 @@ spawn-at-startup "swaybg" "-m" "fill" "-i" "/usr/share/backgrounds/novaos/novaos
 // so a second launch just activates the running tab).
 spawn-at-startup "nova-ai"
 
+// Polkit agent (pkexec password prompts for the NovaOS system apps)
+// and the first-run setup (shows once, then marks itself seen).
+spawn-at-startup "lxpolkit"
+spawn-at-startup "novaos-setup" "--first-run"
+
 binds {
     Mod+Return { spawn "alacritty"; }
     Mod+D { spawn "fuzzel"; }
